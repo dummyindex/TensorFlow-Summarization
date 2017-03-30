@@ -8,9 +8,9 @@ MARK_EOS = "<EOS>"
 MARK_GO = "<GO>"
 MARKS = [MARK_PAD, MARK_UNK, MARK_EOS, MARK_GO]
 ID_PAD = 0
-ID_UNK = 1
+ID_UNK = 3
 ID_EOS = 2
-ID_GO = 3
+ID_GO = 1
 
 
 def load_dict(dict_path, max_vocab=None):
@@ -25,9 +25,33 @@ def load_dict(dict_path, max_vocab=None):
         return None
 
     dict_data = list(map(lambda x: x.split(), dict_data))
+    #dict_data = [ (i, dict_data[i][0]) for i in range(len(dict_data)) ]
+    temp = []
+    error_counter = 0
+    for i in range(len(dict_data)):
+        try:
+            temp.append((i, dict_data[i][0]))
+        except:
+            print("error item %d: %s" % (i, str(dict_data[i])))
+            error_counter += 1 
+            #exit(0)
+    print("%d error items in dict data in total"%(error_counter))
+    dict_data = temp
+            
+    print("sample dict data:" + str(dict_data[0]))
     if max_vocab:
         dict_data = list(filter(lambda x: int(x[0]) < max_vocab, dict_data))
-    tok2id = dict(map(lambda x: (x[1], int(x[0])), dict_data))
+        
+    print(list(map(lambda x: (x[1], int(x[0])), dict_data))[0])
+    tok2id = {}
+    for (idx, word) in dict_data:
+        try:
+            tok2id[word] = int(idx)
+        except:
+            print(word)
+            exit(0)
+            
+    #tok2id = dict(map(lambda x: (x[1], int(x[0])), dict_data))
     id2tok = dict(map(lambda x: (int(x[0]), x[1]), dict_data))
     logging.info(
         "Load dict {} with {} words.".format(dict_path, len(tok2id)))
