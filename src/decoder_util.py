@@ -41,6 +41,8 @@ def attention_decoder_fn_train(encoder_state,
                 cell_output = attention
 
             # combine cell_input and attention
+            print("cell input shape=" + str( cell_input.get_shape() ) )
+            print("attention shape=" + str( attention.get_shape() ) )
             next_input = array_ops.concat([cell_input, attention], 1)
 
             return (None, cell_state, next_input, cell_output, context_state)
@@ -148,11 +150,12 @@ def prepare_attention(attention_states,
     return (attention_keys, attention_values, attention_score_fn,
             attention_construct_fn)
 
-
+FLAGS = tf.app.flags.FLAGS
 def _init_attention(encoder_state):
     # Multi- vs single-layer
     # TODO(thangluong): is this the best way to check?
-    if isinstance(encoder_state, tuple):
+    #if isinstance(encoder_state, tuple):
+    if FLAGS.num_layers > 1 :
         top_state = encoder_state[-1]
     else:
         top_state = encoder_state
