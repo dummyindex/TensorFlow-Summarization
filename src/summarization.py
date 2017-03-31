@@ -16,8 +16,8 @@ tf.app.flags.DEFINE_integer("size", 400, "Size of hidden layers.")
 tf.app.flags.DEFINE_integer("embsize", 200, "Size of embedding.")
 tf.app.flags.DEFINE_integer("num_layers", 1, "Number of layers in the model.")
 tf.app.flags.DEFINE_string("data_dir", "/home/kni/old_data/", "Data directory")
-tf.app.flags.DEFINE_string("test_file", "", "Test filename.")
-tf.app.flags.DEFINE_string("test_output", "output.txt", "Test output.")
+tf.app.flags.DEFINE_string("test_file", "/home/kni/old_data/small_dev_example", "Test filename.")
+tf.app.flags.DEFINE_string("test_output", "model/output.txt", "Test output.")
 tf.app.flags.DEFINE_string("train_dir", "model", "Training directory.")
 tf.app.flags.DEFINE_string("tfboard", "tfboard", "Tensorboard log directory.")
 tf.app.flags.DEFINE_boolean("decode", False, "Set to True for testing.")
@@ -26,13 +26,13 @@ tf.app.flags.DEFINE_boolean("geneos", True, "Do not generate EOS. ")
 tf.app.flags.DEFINE_float(
     "max_gradient", 1.0, "Clip gradients l2 norm to this range.")
 tf.app.flags.DEFINE_integer(
-    "batch_size", 80, "Batch size in training / beam size in testing.")
+    "batch_size", 64, "Batch size in training / beam size in testing.")
 tf.app.flags.DEFINE_integer(
     "doc_vocab_size", 160000, "Document vocabulary size.")
 tf.app.flags.DEFINE_integer(
     "sum_vocab_size", 160000, "Summary vocabulary size.")
 tf.app.flags.DEFINE_integer(
-    "max_train", 0, "Limit on the size of training data (0: no limit).")
+    "max_train", 0, "Limit on the size of training data (0: no limit).") #meanning less now
 tf.app.flags.DEFINE_integer(
     "max_iter", 1000000, "Maximum training iterations.")
 tf.app.flags.DEFINE_integer(
@@ -45,7 +45,8 @@ tf.app.flags.DEFINE_string(
 FLAGS = tf.app.flags.FLAGS
 
 # We use a number of buckets for sampling
-_buckets = [(30, 10), (50, 20), (70, 20), (100, 20), (200, 30)]
+#_buckets = [(30, 30), (50, 50), (70, 70), (100, 100), (200, 200)]
+_buckets = [(30, 30), (50, 50), (70, 70)]
 
 
 def create_bucket(source, target):
@@ -94,17 +95,18 @@ def train():
     logging.info("Preparing summarization data.")
     docid, sumid, doc_dict, sum_dict = \
         data_util.load_data(
-            os.path.join(FLAGS.data_dir + "/train_example_id_vocab160000_string_tokenizer"),
-            os.path.join(FLAGS.data_dir + "/train_explain_id_vocab160000_string_tokenizer"),
-            os.path.join(FLAGS.data_dir + "/vocab160000"),
-            os.path.join(FLAGS.data_dir + "/vocab160000"),
-            FLAGS.doc_vocab_size, FLAGS.sum_vocab_size)
+            os.path.join(FLAGS.data_dir + "train_example_plain"),
+            os.path.join(FLAGS.data_dir + "train_explain_plain"),
+            os.path.join(FLAGS.data_dir + "vocab160000"),
+            os.path.join(FLAGS.data_dir + "vocab160000"),
+            FLAGS.doc_vocab_size, FLAGS.sum_vocab_size,
+            max_train = FLAGS.max_train)
 
     val_docid, val_sumid = \
         data_util.load_valid_data(
             #FLAGS.data_dir + "/valid.article.filter.txt",
-            FLAGS.data_dir + "dev_example_id_vocab160000_string_tokenizer",
-            FLAGS.data_dir + "dev_explain_id_vocab160000_string_tokenizer",
+            FLAGS.data_dir + "dev_example_plain",
+            FLAGS.data_dir + "dev_explain_plain",
             doc_dict, sum_dict)
 
     with tf.Session() as sess:
@@ -186,8 +188,8 @@ def train():
 
 def decode():
     # Load vocabularies.
-    doc_dict = data_util.load_dict(FLAGS.data_dir + "/doc_dict.txt")
-    sum_dict = data_util.load_dict(FLAGS.data_dir + "/sum_dict.txt")
+    doc_dict = data_util.load_dict(FLAGS.data_dir + "/vocab160000")
+    sum_dict = data_util.load_dict(FLAGS.data_dir + "/vocab160000")
     if doc_dict is None or sum_dict is None:
         logging.warning("Dict not found.")
     data = data_util.load_test_data(FLAGS.test_file, doc_dict)
@@ -223,7 +225,7 @@ def decode():
             gen_sum = data_util.sen_postprocess(gen_sum)
             result.append(gen_sum)
             logging.info("Finish {} samples. :: {}".format(idx, gen_sum[:75]))
-        with open(FLAGS.test_output, "w") as f:
+        with open(FLAGS.test_output, "w+") as f:
             for item in result:
                 print(item, file=f)
 

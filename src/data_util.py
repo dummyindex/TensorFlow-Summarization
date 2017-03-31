@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-
+import sys
 MARK_PAD = "<PAD>"
 MARK_UNK = "<UNK>"
 MARK_EOS = "<EOS>"
@@ -33,8 +33,8 @@ def load_dict(dict_path, max_vocab=None):
             temp.append((i, dict_data[i][0]))
         except:
             print("error item %d: %s" % (i, str(dict_data[i])))
-            error_counter += 1 
-            #exit(0)
+            error_counter += 1
+            
     print("%d error items in dict data in total"%(error_counter))
     dict_data = temp
             
@@ -49,6 +49,7 @@ def load_dict(dict_path, max_vocab=None):
             tok2id[word] = int(idx)
         except:
             print(word)
+            print("error in load dict, exiting...")
             exit(0)
             
     #tok2id = dict(map(lambda x: (x[1], int(x[0])), dict_data))
@@ -119,15 +120,29 @@ def load_data(doc_filename,
               doc_dict_path,
               sum_dict_path,
               max_doc_vocab=None,
-              max_sum_vocab=None):
+              max_sum_vocab=None,
+              max_train = None):
     logging.info(
         "Load document from {}; summary from {}.".format(
             doc_filename, sum_filename))
-
+    
+    docs = []
     with open(doc_filename) as docfile:
-        docs = docfile.readlines()
+        counter = 0
+        for line in docfile:
+            docs.append(line.replace("\n",""))
+            counter += 1
+            if counter > max_train:
+                break
+    sums = []
     with open(sum_filename) as sumfile:
-        sums = sumfile.readlines()
+        counter = 0
+        for line in sumfile:
+            sums.append(line.replace("\n",""))
+            counter += 1
+            if counter > max_train:
+                break
+
     assert len(docs) == len(sums)
     logging.info("Load {num} pairs of data.".format(num=len(docs)))
 
@@ -137,12 +152,17 @@ def load_data(doc_filename,
     doc_dict = load_dict(doc_dict_path, max_doc_vocab)
     if doc_dict is None:
         doc_dict = create_dict(doc_dict_path, docs, max_doc_vocab)
-
+            
     sum_dict = load_dict(sum_dict_path, max_sum_vocab)
+    print("doc_dict length: %d"%len(doc_dict[0]))
+    print("sum_dict length: %d"%len(sum_dict[0]))
+    sys.stdout.flush()
+    
     if sum_dict is None:
         sum_dict = create_dict(sum_dict_path, sums, max_sum_vocab)
 
     docid, cover = corpus_map2id(docs, doc_dict[0])
+    
     logging.info(
         "Doc dict covers {:.2f}% words.".format(cover * 100))
     sumid, cover = corpus_map2id(sums, sum_dict[0])
